@@ -242,7 +242,7 @@ def from_faebryk_t2_netlist(netlist):
         _defaulted_comp(
             ref=comp["name"],
             value=comp["value"],
-            footprint=kicad_fp(comp["properties"]["footprint"]),
+            footprint=kicad_fp(comp["properties"]["footprint"].kicad().get_footprint()),
             tstamp=next(tstamp),
         )
         for comp in #pre_comps
@@ -257,7 +257,7 @@ def from_faebryk_t2_netlist(netlist):
             nodes=[
                 _gen_node(
                     ref=vertex["comp"]["name"],
-                    pin=vertex["pin"],
+                    pin=vertex["pin"].kicad().get_pin(),
                 ) for vertex in #net["vertices"]
                     sorted(net["vertices"], key=lambda x: x["comp"]["name"])
             ]
