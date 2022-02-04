@@ -196,6 +196,29 @@ class SDIO(Interface):
         self.add_trait(_contructable_from_interface_list())
 >>>>>>> 7dbe936 (Feature: Add: Components for vindriktning)
 
+class UART(Interface):
+    def __init__(self) -> None:
+        super().__init__()
+        self.tx = Electrical()
+        self.rx = Electrical()
+
+        class _can_list_interfaces(can_list_interfaces):
+            @staticmethod
+            def get_interfaces() -> list(Electrical):
+                return [self]
+
+        class _contructable_from_interface_list(contructable_from_interface_list):
+            @staticmethod
+            def from_interfaces(interfaces: Iterable(Electrical)) -> Electrical():
+                i = Electrical()
+                i.tx = next(interfaces)
+                i.rx = next(interfaces)
+                return i
+
+        self.add_trait(_can_list_interfaces())
+        self.add_trait(_contructable_from_interface_list())
+
+
 #class I2C(Interface):
 #    def __init__(self) -> None:
 #        super().__init__()
@@ -760,6 +783,10 @@ class ESP32(Component):
         self.interface_sdio.SD3.connect(self.SD_DATA_3)
         self.interface_sdio.CLK.connect(self.SD_CLK)
         self.interface_sdio.CMD.connect(self.SD_CMD)
+
+        self.interface_UART0 = UART()
+        self.interface_UART0.rx.connect(self.U0RXD)
+        self.interface_UART0.tx.connect(self.U0TXD)
 
     def _setup_power(self):
         self.power_rtc = Power()
