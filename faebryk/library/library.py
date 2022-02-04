@@ -21,6 +21,20 @@ class Constant(Parameter):
             self.value
         ))
 
+class Range(Parameter):
+    def __init__(self, value_min: typing.Any, value_max: typing.Any) -> None:
+        super().__init__()
+        self.min = value_min
+        self.max = value_max
+    
+    def pick(self, value_to_check: typing.Any):
+        if not self.min <= value_to_check <= self.max:
+            raise FaebrykException(f"Value not in range: {value_to_check} not in [{self.min},{self.max}]")
+
+        self.add_trait(is_representable_by_single_value(
+            value_to_check
+        ))
+
 class TBD(Parameter):
     def __init__(self) -> None:
         super().__init__()
@@ -332,7 +346,7 @@ class Capacitor(Component):
                 c._setup_capacitance(capacitance)
                 c.interfaces = interfaces
 
-                return r
+                return c
 
         self.add_trait(_has_interfaces())
         self.add_trait(_contructable_from_component())
