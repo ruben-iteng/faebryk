@@ -136,6 +136,7 @@ class Power(Interface):
         #TODO finish the trait stuff
 #        self.add_trait(is_composed([self.hv, self.lv]))
 
+<<<<<<< HEAD
     def connect(self, other: Interface):
         #TODO feels a bit weird
         # maybe we need to look at how aggregate interfaces connect
@@ -149,6 +150,37 @@ class Power(Interface):
 
 
 
+=======
+class SDIO(Interface):
+    def __init__(self) -> None:
+        super().__init__()
+        self.SD0 = Electrical()
+        self.SD1 = Electrical()
+        self.SD2 = Electrical()
+        self.SD3 = Electrical()
+        self.CLK = Electrical()
+        self.CMD = Electrical()
+
+        class _can_list_interfaces(can_list_interfaces):
+            @staticmethod
+            def get_interfaces() -> list(Electrical):
+                return [self.SD0, self.SD1, self.SD2, self.SD3, self.CLK, self.CMD]
+
+        class _contructable_from_interface_list(contructable_from_interface_list):
+            @staticmethod
+            def from_interfaces(interfaces: Iterable(Electrical)) -> Electrical():
+                i = Electrical()
+                i.SD0 = next(interfaces)
+                i.SD1 = next(interfaces)
+                i.SD2 = next(interfaces)
+                i.SD3 = next(interfaces)
+                i.CLK = next(interfaces)
+                i.CMD = next(interfaces)
+                return i
+
+        self.add_trait(_can_list_interfaces())
+        self.add_trait(_contructable_from_interface_list())
+>>>>>>> 7dbe936 (Feature: Add: Components for vindriktning)
 
 #class I2C(Interface):
 #    def __init__(self) -> None:
@@ -281,8 +313,133 @@ class Resistor(Component):
                 return unit_map(resistance.value, ["µΩ", "mΩ", "Ω", "KΩ", "MΩ", "GΩ"], start="Ω")
         self.add_trait(_has_type_description())
 
-class LED(Component):
+class Capacitor(Component):
+    def _setup_traits(self):
+        class _has_interfaces(has_interfaces):
+            @staticmethod
+            def get_interfaces() -> list(Interface):
+                return self.interfaces
 
+        class _contructable_from_component(contructable_from_component):
+            @staticmethod
+            def from_component(comp: Component, capacitance: Parameter) -> Capacitor:
+                assert(comp.has_trait(has_interfaces))
+                interfaces = comp.get_trait(has_interfaces).get_interfaces()
+                assert(len(interfaces) == 2)
+                assert(len([i for i in interfaces if type(i) is not Electrical]) == 0)
+
+                c = Capacitor.__new__(Capacitor)
+                c._setup_capacitance(capacitance)
+                c.interfaces = interfaces
+
+                return r
+
+        self.add_trait(_has_interfaces())
+        self.add_trait(_contructable_from_component())
+
+    def _setup_interfaces(self):
+        self.interfaces = [Electrical(), Electrical()]
+
+    def __new__(cls, *args, **kwargs):
+        self = super().__new__(cls)
+        self._setup_traits()
+        return self
+
+    def __init__(self, capacitance : Parameter):
+        super().__init__()
+
+        self._setup_interfaces()
+        self.set_capacitance(capacitance)
+
+    def set_capacitance(self, capacitance: Parameter):
+        self.capacitance = capacitance
+
+        if type(capacitance) is not Constant:
+            return
+
+        class _has_type_description(has_type_description):
+            @staticmethod
+            def get_type_description():
+                capacitance = self.capacitance
+                return unit_map(capacitance.value, ["µF", "mF", "F", "KF", "MF", "GF"], start="µF")
+        self.add_trait(_has_type_description())
+
+class PM1006Connector(Component):
+    def _setup_traits(self):
+        self.add_trait(has_defined_type_description("Connector"))
+        
+    def _setup_interfaces(self):
+        self.PM_TX = Electrical()
+        self.PM_RX = Electrical()
+        self.VCC_5v = Electrical()
+        self.SGND = Electrical()
+
+    def __new__(cls):
+        self = super().__new__(cls)
+        self._setup_traits()
+        return self
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._setup_interfaces()
+
+class PMFanConnector(Component):
+    def _setup_traits(self):
+        self.add_trait(has_defined_type_description("Connector"))
+        
+    def _setup_interfaces(self):
+        self.VCC_FAN = Electrical()
+        self.GND = Electrical()
+
+    def __new__(cls):
+        self = super().__new__(cls)
+        self._setup_traits()
+        return self
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._setup_interfaces()
+
+class MOSFET(Component):
+    def _setup_traits(self):
+        self.add_trait(has_defined_type_description("Transistor_FET"))
+        
+    def _setup_interfaces(self):
+        self.source = Electrical()
+        self.gate = Electrical()
+        self.drain = Electrical()
+
+    def __new__(cls):
+        self = super().__new__(cls)
+        self._setup_traits()
+        return self
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._setup_interfaces()
+
+class USBC(Component):
+    def _setup_traits(self):
+        self.add_trait(has_defined_type_description("Connector_USB"))
+        
+    def _setup_interfaces(self):
+        self.GND = Electrical()
+        self.VBUS = Electrical()
+        self.CC1 = Electrical()
+        self.CC2 = Electrical()
+        self.VBUS = Electrical()
+        self.GND = Electrical()
+
+    def __new__(cls):
+        self = super().__new__(cls)
+        self._setup_traits()
+        return self
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._setup_interfaces()
+
+class LED(Component):
     class has_calculatable_needed_series_resistance(ComponentTrait):
         @staticmethod
         def get_needed_series_resistance_ohm(input_voltage_V) -> int:
@@ -520,5 +677,105 @@ class CD4011(Component):
         self._setup_internal_connections()
 
 
+<<<<<<< HEAD
 
+=======
+class ESP32(Component):
+    def _setup_traits(self):
+        self.add_trait(has_defined_type_description("ESP32"))
+        
+    def _setup_interfaces(self):
+        # Analog
+        self.VDDA0 = Electrical()
+        self.LNA_IN = Electrical()
+        self.VDD3P3 = Electrical()
+        self.SENSOR_VP = Electrical()
+        # VDD3P3_RTC
+        self.SENSOR_CAPP = Electrical()
+        self.SENSOR_CAPN = Electrical()
+        self.SENSOR_VN = Electrical()
+        self.CHIP_PU = Electrical()
+        self.VDET_1 = Electrical()
+        self.VDET_2 = Electrical()
+        self._32K_XP = Electrical()
+        self._32K_XN = Electrical()
+        self.GPIO25 = Electrical()
+        self.GPIO26 = Electrical()
+        self.GPIO27 = Electrical()
+        self.MTMS = Electrical()
+        self.MTDI = Electrical()
+        self.VDD3P3_RTC = Electrical()
+        self.MTCK = Electrical()
+        self.MTDO = Electrical()
+        self.GPIO2 = Electrical()
+        self.GPIO0 = Electrical()
+        self.GPIO4 = Electrical()
+        # VDD_SDIO
+        self.GPIO16 = Electrical()
+        self.VDD_SDIO = Electrical()
+        self.GPIO17 = Electrical()
+        self.SD_DATA_2 = Electrical()
+        self.SD_DATA_3 = Electrical()
+        self.SD_CMD = Electrical()
+        self.SD_CLK = Electrical()
+        self.SD_DATA_0 = Electrical()
+        self.SD_DATA_1 = Electrical()
+        # VDD3P3_CPU
+        self.GPIO5 = Electrical()
+        self.GPIO18 = Electrical()
+        self.GPIO23 = Electrical()
+        self.VDD3P3_CPU = Electrical()
+        self.GPIO19 = Electrical()
+        self.GPIO22 = Electrical()
+        self.U0RXD = Electrical()
+        self.U0TXD = Electrical()
+        self.GPIO21 = Electrical()
+        # Analog
+        self.VDDA1 = Electrical()
+        self.XTAL_N = Electrical()
+        self.XTAL_P = Electrical()
+        self.VDDA2 = Electrical()
+        self.CAP2 = Electrical()
+        self.CAP1 = Electrical()
+        self.GND = Electrical()
+
+        self.interface_sdio = SDIO()
+        self.interface_sdio.SD0.connect(self.SD_DATA_0)
+        self.interface_sdio.SD1.connect(self.SD_DATA_1)
+        self.interface_sdio.SD2.connect(self.SD_DATA_2)
+        self.interface_sdio.SD3.connect(self.SD_DATA_3)
+        self.interface_sdio.CLK.connect(self.SD_CLK)
+        self.interface_sdio.CMD.connect(self.SD_CMD)
+
+    def _setup_power(self):
+        self.power_rtc = Power()
+        self.power_cpu = Power()
+        self.power_sdio = Power()
+        self.power_analog = Power()
+
+        self.power_rtc.hv.connect(self.VDD3P3_RTC)
+        self.power_rtc.lv.connect(self.GND)
+        
+        self.power_cpu.hv.connect(self.VDD3P3_CPU)
+        self.power_cpu.lv.connect(self.GND)
+        
+        self.power_sdio.hv.connect(self.VDD_SDIO)
+        self.power_sdio.lv.connect(self.GND)
+        
+        self.power_analog.hv.connect(self.VDDA0)
+        self.power_analog.hv.connect(self.VDDA1)
+        self.power_analog.hv.connect(self.VDDA2)
+        self.power_analog.lv.connect(self.GND)
+
+    def __new__(cls):
+        self = super().__new__(cls)
+        self._setup_traits()
+        return self
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._setup_interfaces()
+        self._setup_power()
+        
+>>>>>>> 7dbe936 (Feature: Add: Components for vindriktning)
 # -----------------------------------------------------------------------------
