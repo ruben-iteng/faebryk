@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import networkx as nx
-from faebryk.libs.util import hashable_dict
+from faebryk.libs.util import hashable_dict, unique
 from faebryk.libs.exceptions import FaebrykException
 
 # 0. netlist = graph
@@ -34,8 +34,12 @@ def _make_graph(netlist):
     ]
     for s_vertex,d_vertex in edges:
         if d_vertex.node not in netlist:
+            for c in netlist:
+                if c["name"] == d_vertex.node["name"]:
+                    print(f"{c} != {d_vertex.node}")
             raise FaebrykException("{} was connected to but not in graph as node".format(
                 d_vertex.node["name"]))
+    #TODO check if any nodes in netlist are not appearing in Graph
 
     G.add_edges_from(edges)
     return G
@@ -101,25 +105,40 @@ def render_graph(t1_netlist):
         for node in t1_netlist
         for spin in node.get("neighbors", {1: None}).keys()
     ]
-    nodes_dict = {node:"{}:{}".format(node.node["name"], node.pin)
+    nodes_dict = {node:"{}".format(node.pin)
         for node in nodes}
+
 
     netedges = G.edges()
 
+    # Make edges between pins within component
     def _helper(obj):
         return list(obj["neighbors"].keys())
 
     intra_comp_edges = [
-        (vertex(node, _helper(node)[0]), vertex(node, pin))
+        (vertex(node, spin), vertex(node, dpin))
             for node in t1_netlist
-            for pin in _helper(node)[1:]
+            for spin in _helper(node)
+            for dpin in _helper(node)
+            if spin != dpin
     ]
     G.add_edges_from(intra_comp_edges)
 
+    import re
+    intra_edge_dict = dict(unique({edge:"{}".format(
+        re.search(r"\[.*\]",
+            edge[0].node["name"]).group()
+        )
+        for edge in intra_comp_edges
+    }.items(), key=lambda edge:edge[0][0].node))
+
+    # Draw
     plt.subplot(121)
     layout = nx.spring_layout(G)
-    #nx.draw_networkx_nodes(G, pos=layout)
+    nx.draw_networkx_nodes(G, pos=layout, node_size=150)
     nx.draw_networkx_edges(G, pos=layout, edgelist=netedges, edge_color="#FF0000")
     nx.draw_networkx_edges(G, pos=layout, edgelist=intra_comp_edges, edge_color="#0000FF")
     nx.draw_networkx_labels(G, pos=layout, labels=nodes_dict)
+    nx.draw_networkx_edge_labels(G, pos=layout, edge_labels=intra_edge_dict,
+        font_size=10, rotate=False, bbox=dict(fc="blue"), font_color="white")
     plt.show()
