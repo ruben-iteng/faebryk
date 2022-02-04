@@ -81,13 +81,11 @@ def run_experiment():
     # power
     pwr_vbus = lib.Component()
     pwr_vbus.power = lib.Power()
+    gnd = pwr_vbus.power.lv
+    vbus = pwr_vbus.power.hv
 
     pwr_3v3 = lib.Component()
     pwr_3v3.power = lib.Power()
-
-    # alias
-    gnd = pwr_vbus.power.lv
-    vbus = pwr_vbus.power.hv
     v3v3 = pwr_3v3.power.hv
     pwr_3v3.power.lv.connect(gnd)
 
@@ -104,12 +102,16 @@ def run_experiment():
     cc1_resistor.interfaces[1].connect(gnd)
     cc2_resistor.interfaces[1].connect(gnd)
     
-    # PM1006 sensor + fan
+    # PM1006 sensor + UART 5v + fan
     fan = lib.PMFanConnector()
     fan.VCC_FAN.connect(vbus)
     sensor = lib.PM1006Connector()
     sensor.VCC_5v.connect(vbus)
     sensor.SGND.connect(gnd)
+
+    uart_hv = lib.UART()
+    uart_hv.rx.connect(sensor.PM_RX)
+    uart_hv.tx.connect(sensor.PM_TX)
 
     # fan control
     fanfet = lib.MOSFET()
@@ -139,6 +141,51 @@ def run_experiment():
     esp32.power_cpu.connect(pwr_3v3.power)
     esp32.power_analog.connect(pwr_3v3.power)
     esp32.GPIO0.connect(gnd)
+    
+    uart_lv = lib.UART()
+    uart_lv.rx.connect(esp32.interface_UART0.rx)
+    uart_lv.tx.connect(esp32.interface_UART0.tx)
+
+    # UART level shifter
+    tx_level_shift_fet = lib.MOSFET()
+    rx_level_shift_fet = lib.MOSFET()
+
+    class Pull(lib.Resistor):
+        def __init__(self, line, target, resistance):
+            super().__init__(resistance)
+            self.interfaces[0].connect(line)
+            self.interfaces[1].connect(target)
+
+    pulls = [
+        Pull(tx_level_shift_fet.drain,  vbus, resistance=lib.Constant(10000)),
+        Pull(rx_level_shift_fet.drain,  vbus, resistance=lib.Constant(10000)),
+        Pull(tx_level_shift_fet.source, v3v3, resistance=lib.Constant(10000)),
+        Pull(rx_level_shift_fet.source, v3v3, resistance=lib.Constant(10000)),
+    ]
+
+    #tx_hv_pullup_resistor = Pull(vbus, tx_level_shift_fet.drain, resistance=lib.Constant(10000))
+    #tx_hv_pullup_resistor = lib.Resistor(resistance=lib.Constant(10000))
+    #tx_hv_pullup_resistor.interfaces[0].connect(vbus)
+    #tx_hv_pullup_resistor.interfaces[1].connect(tx_level_shift_fet.drain)
+    uart_hv.tx.connect(tx_level_shift_fet.drain)
+
+    rx_hv_pullup_resistor = lib.Resistor(resistance=lib.Constant(10000))
+    rx_hv_pullup_resistor.interfaces[0].connect(vbus)
+    rx_hv_pullup_resistor.interfaces[1].connect(rx_level_shift_fet.drain)
+    uart_hv.rx.connect(rx_level_shift_fet.drain)
+
+    tx_lv_pullup_resistor = lib.Resistor(resistance=lib.Constant(10000))
+    tx_lv_pullup_resistor.interfaces[0].connect(v3v3)
+    tx_lv_pullup_resistor.interfaces[1].connect(tx_level_shift_fet.source)
+    tx_level_shift_fet.gate.connect(v3v3)
+    uart_lv.tx.connect(tx_level_shift_fet.source)
+    #tx_level_shift_fet.source.connect(uart_lv.tx)
+
+    rx_lv_pullup_resistor = lib.Resistor(resistance=lib.Constant(10000))
+    rx_lv_pullup_resistor.interfaces[0].connect(v3v3)
+    rx_lv_pullup_resistor.interfaces[1].connect(rx_level_shift_fet.source)
+    rx_level_shift_fet.gate.connect(v3v3)
+    uart_lv.rx.connect(rx_level_shift_fet.source)
 
     # parametrizing
     pwr_vbus.voltage = 5
@@ -213,6 +260,7 @@ def run_experiment():
         fan,
         current_limiting_resistor,
         esp32,
+        *pulls,
     ]
 
     netlist = from_faebryk_t2_netlist(
