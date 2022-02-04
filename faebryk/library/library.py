@@ -150,7 +150,6 @@ class Power(Interface):
         #TODO finish the trait stuff
 #        self.add_trait(is_composed([self.hv, self.lv]))
 
-<<<<<<< HEAD
     def connect(self, other: Interface):
         #TODO feels a bit weird
         # maybe we need to look at how aggregate interfaces connect
@@ -164,7 +163,6 @@ class Power(Interface):
 
 
 
-=======
 class SDIO(Interface):
     def __init__(self) -> None:
         super().__init__()
@@ -194,7 +192,6 @@ class SDIO(Interface):
 
         self.add_trait(_can_list_interfaces())
         self.add_trait(_contructable_from_interface_list())
->>>>>>> 7dbe936 (Feature: Add: Components for vindriktning)
 
 class UART(Interface):
     def __init__(self) -> None:
@@ -714,9 +711,6 @@ class CD4011(Component):
         self._setup_internal_connections()
 
 
-<<<<<<< HEAD
-
-=======
 class ESP32(Component):
     def _setup_traits(self):
         self.add_trait(has_defined_type_description("ESP32"))
@@ -818,5 +812,4 @@ class ESP32(Component):
         self._setup_interfaces()
         self._setup_power()
         
->>>>>>> 7dbe936 (Feature: Add: Components for vindriktning)
 # -----------------------------------------------------------------------------
