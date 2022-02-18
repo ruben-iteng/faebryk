@@ -96,7 +96,7 @@ def make_t2_netlist_from_t1(t1_netlist):
 
     return t2_netlist
 
-def render_graph(t1_netlist):
+def render_graph(t1_netlist, write_to_file: bool):
     import matplotlib.pyplot as plt
 
     G = _make_graph(t1_netlist)
@@ -141,4 +141,6 @@ def render_graph(t1_netlist):
     nx.draw_networkx_labels(G, pos=layout, labels=nodes_dict)
     nx.draw_networkx_edge_labels(G, pos=layout, edge_labels=intra_edge_dict,
         font_size=10, rotate=False, bbox=dict(fc="blue"), font_color="white")
+    if write_to_file == True:
+        plt.savefig('./build/render.png', bbox_inches='tight')
     plt.show()
