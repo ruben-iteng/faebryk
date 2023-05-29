@@ -21,7 +21,16 @@ from faebryk.libs.util import consume_iterator
 logger = logging.getLogger("library")
 
 from faebryk.library.core import Component, ComponentTrait, Parameter
-from faebryk.library.library.interfaces import Electrical, Power
+from faebryk.library.library.interfaces import (
+    I2C,
+    SPI,
+    SWD,
+    UART_SIMPLE,
+    Electrical,
+    Power,
+    USB2_0,
+    QUAD_SPI,
+)
 from faebryk.library.library.parameters import Constant
 from faebryk.library.util import times, unit_map
 
@@ -513,3 +522,147 @@ class TI_CD4011BE(CD4011):
                 }
 
         self.add_trait(_has_footprint_pinmap())
+
+
+class RP2040(Component):
+    def __new__(cls):
+        self = super().__new__(cls)
+        self._setup_traits()
+        return self
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._setup_interfaces()
+        self._setup_traits()
+        self._setup_internal_connections()
+
+    def _setup_traits(self):
+        from faebryk.library.library.footprints import QFN
+
+        self.add_trait(
+            has_defined_footprint(
+                QFN(
+                    pin_cnt=56,
+                    exposed_thermal_pad_cnt=1,
+                    exposed_thermal_pad_dimensions_mm=[3.2, 3.2],
+                    has_thermal_vias=True,
+                    size_xy_mm=[7.0, 7.0],
+                    pitch_mm=0.4,
+                )
+            )
+        )
+
+        class _has_footprint_pinmap(has_footprint_pinmap.impl()):
+            def get_pin_map(self):
+                component = self.get_obj()
+                return {
+                    1: component.IFs.io_power.IFs.hv,
+                    2: component.IFs.gpio[0],
+                    3: component.IFs.gpio[1],
+                    4: component.IFs.gpio[2],
+                    5: component.IFs.gpio[3],
+                    6: component.IFs.gpio[4],
+                    7: component.IFs.gpio[5],
+                    8: component.IFs.gpio[6],
+                    9: component.IFs.gpio[7],
+                    10: component.IFs.io_power.IFs.hv,
+                    11: component.IFs.gpio[8],
+                    12: component.IFs.gpio[9],
+                    13: component.IFs.gpio[10],
+                    14: component.IFs.gpio[11],
+                    15: component.IFs.gpio[12],
+                    16: component.IFs.gpio[13],
+                    17: component.IFs.gpio[14],
+                    18: component.IFs.gpio[15],
+                    19: component.IFs.test_en,
+                    20: component.IFs.crystal_in,
+                    21: component.IFs.crystal_out,
+                    22: component.IFs.io_power.IFs.hv,
+                    23: component.IFs.core_power.IFs.hv,
+                    24: component.IFs.swd.IFs.clk,
+                    25: component.IFs.swd.IFs.dio,
+                    26: component.IFs.run,
+                    27: component.IFs.gpio[16],
+                    28: component.IFs.gpio[17],
+                    29: component.IFs.gpio[18],
+                    30: component.IFs.gpio[19],
+                    31: component.IFs.gpio[20],
+                    32: component.IFs.gpio[21],
+                    33: component.IFs.io_power.IFs.hv,
+                    34: component.IFs.gpio[22],
+                    35: component.IFs.gpio[23],
+                    36: component.IFs.gpio[24],
+                    37: component.IFs.gpio[25],
+                    38: component.IFs.gpio[26],
+                    39: component.IFs.gpio[27],
+                    40: component.IFs.gpio[28],
+                    41: component.IFs.gpio[29],
+                    42: component.IFs.io_power.IFs.hv,
+                    43: component.IFs.adc_power.IFs.hv,
+                    44: component.IFs.vreg_in_power.IFs.hv,
+                    45: component.IFs.vreg_out_power.IFs.hv,
+                    46: component.IFs.usb.IFs.dn,
+                    47: component.IFs.usb.IFs.dp,
+                    48: component.IFs.usb_power.IFs.hv,
+                    49: component.IFs.io_power.IFs.hv,
+                    50: component.IFs.core_power.IFs.hv,
+                    51: component.IFs.quad_spi.IFs.sd3,
+                    52: component.IFs.quad_spi.IFs.sclk,
+                    53: component.IFs.quad_spi.IFs.sd0,
+                    54: component.IFs.quad_spi.IFs.sd2,
+                    55: component.IFs.quad_spi.IFs.sd1,
+                    56: component.IFs.quad_spi.IFs.ss_n,
+                    57: component.IFs.gnd,  # thermal_pad
+                }
+
+        self.add_trait(_has_footprint_pinmap())
+        self.add_trait(has_defined_type_description("rp2040"))
+
+    def _setup_interfaces(self):
+        class _IFs(Component.InterfacesCls()):
+            gpio = times(30, Electrical)
+            crystal_in = Electrical()
+            crystal_out = Electrical()
+            run = Electrical()
+            test_en = Electrical()
+
+            io_power = Electrical()
+            usb_power = Electrical()
+            adc_power = Electrical()
+            vreg_in_power = Electrical()
+            vreg_out_power = Electrical()
+            core_power = Electrical()
+
+            usb = USB2_0()
+            swd = SWD()
+            spi0 = SPI()
+            spi1 = SPI()
+            quad_spi = QUAD_SPI()
+            uart0 = UART_SIMPLE()
+            i2c0 = I2C()
+            i2c1 = I2C()
+
+            gnd = Electrical()
+
+        self.IFs = _IFs(self)
+
+    def _setup_internal_connections(self):
+
+        self.IFs.gnd.connect_all(
+            [
+                # self.IFs.io_power.IFs.lv,
+                # self.IFs.usb_power.IFs.lv,
+                # self.IFs.adc_power.IFs.lv,
+                # self.IFs.vreg_in_power.IFs.lv,
+                # self.IFs.vreg_out_power.IFs.lv,
+                # self.IFs.core_power.IFs.lv,
+                self.IFs.usb.IFs.gnd,
+                self.IFs.swd.IFs.gnd,
+                self.IFs.spi0.IFs.gnd,
+                self.IFs.spi1.IFs.gnd,
+                self.IFs.quad_spi.IFs.gnd,
+                self.IFs.uart0.IFs.gnd,
+                self.IFs.i2c0.IFs.gnd,
+                self.IFs.i2c1.IFs.gnd,
+            ]
+        )
