@@ -40,10 +40,14 @@ class Constant(Generic[PV], Parameter[PV]):
         raise NotImplementedError()
 
     def __lt__(self, other) -> bool:
+        from faebryk.library.Range import Range
+        
         if isinstance(other, Constant):
             return self.value < other.value
         if not isinstance(other, Parameter):
             return self.value < other
+        if isinstance(other, Range):
+            return self.value >= other
         raise NotImplementedError()
 
     def __ge__(self, other) -> bool:
@@ -54,8 +58,12 @@ class Constant(Generic[PV], Parameter[PV]):
         raise NotImplementedError()
 
     def __gt__(self, other) -> bool:
+        from faebryk.library.Range import Range
+        
         if isinstance(other, Constant):
             return self.value > other.value
         if not isinstance(other, Parameter):
+            return self.value > other
+        if isinstance(other, Range):
             return self.value > other
         raise NotImplementedError()
